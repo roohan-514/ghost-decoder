@@ -2,7 +2,9 @@
 """Ghost Font Decoder — launch GUI or CLI."""
 
 import sys
+import io
 import argparse
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 
 def main():

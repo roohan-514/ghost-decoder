@@ -2,6 +2,8 @@
 
 import argparse
 import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 from pathlib import Path
 from decoder import decode, save_result, export_pdf, export_text, open_result
 
@@ -27,8 +29,9 @@ def main():
         sys.exit(1)
 
     def progress(pct, msg):
-        bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
-        print(f"\r  [{bar}] {pct}%  {msg}", end="", flush=True)
+        bar = "#" * (pct // 5) + "." * (20 - pct // 5)
+        sys.stdout.write(f"\r  [{bar}] {pct}%  {msg}")
+        sys.stdout.flush()
 
     print(f"  Processing: {Path(args.video).name}")
     try:
