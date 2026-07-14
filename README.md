@@ -1,108 +1,95 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python" alt="Python"/>
-  <img src="https://img.shields.io/badge/OpenCV-4.5+-5C3EE8?style=for-the-badge&logo=opencv" alt="OpenCV"/>
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT"/>
-  <img src="https://img.shields.io/github/stars/roohan-514/ghost-decoder?style=for-the-badge" alt="Stars"/>
-</p>
-
-<h1 align="center">Ghost Font Decoder</h1>
-
-<p align="center">
-  <em>Decode Ghost Font videos — reveal messages hidden in anti-AI motion-based fonts.</em><br/>
-  Uses frame-difference accumulation to extract text from moving dots.
-</p>
+<div align="center">
+  <h1>👻 Ghost Font Decoder</h1>
+  <p><em>Decode anti-AI motion fonts — reveal messages hidden in video.</em></p>
+  <p>
+    <img src="https://img.shields.io/badge/Python-3.8+-blue?logo=python" alt="Python"/>
+    <img src="https://img.shields.io/badge/OpenCV-4.5+-purple?logo=opencv" alt="OpenCV"/>
+    <img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT"/>
+  </p>
+</div>
 
 ---
 
-## How It Works
+## What It Does
 
-Ghost Font hides text using moving dots that blend with the background. A single screenshot shows nothing — but the **motion trail** reveals the message to the human eye.
+Ghost Font hides text using **moving dots** that are invisible in any single frame. Only the human eye can see the motion trail — until now.
 
-This tool applies the same technique programmatically:
+This tool tracks dark moving dots across all frames, accumulates their motion trails, and produces a decoded image showing the hidden message. An optional **EasyOCR** pass attempts automatic text extraction (Ghost Font is designed to defeat AI vision, so OCR may not always succeed — the decoded image is meant for human reading).
 
-1. Reads each frame of the video
-2. Computes pixel differences between consecutive frames
-3. Accumulates all motion over time — the static decoy disappears, the moving dots solidify
-4. Applies adaptive thresholding and cleanup to reveal the message
+## Features
 
----
+- 🎥 **Drop any Ghost Font video** — MP4, AVI, MOV, MKV
+- 🔍 **Three detection methods** — transition-tracking (best), dark-count, frame-difference
+- 🤖 **Auto OCR** — best-effort text reading via EasyOCR
+- 📄 **Export as PDF** — image + extracted text in one file
+- 📝 **Export as TXT** — just the decoded message
+- 🖼️ **Export as PNG** — the raw decoded image
+- 🎛️ **Adjustable settings** — sensitivity (percentile), dilation, method
+- 📊 **Live progress bar** — see each frame being processed
+- 🎨 **Dark modern UI** — built with Tkinter
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-pip install opencv-python numpy
+# Install
+pip install opencv-python numpy easyocr fpdf2 pillow
 
-# Decode a Ghost Font video
-python cli.py path/to/ghost-font-video.mp4 --output result.png
-
-# Show the result window
-python cli.py path/to/video.mp4
-```
-
-### GUI Mode
-
-```bash
-python main.py --gui
-# or just
+# GUI mode
 python main.py
+
+# CLI mode
+python cli.py video.mp4
 ```
 
----
-
-## Command Line
+## CLI Usage
 
 ```bash
-python cli.py <video> [options]
+python cli.py video.mp4                          # Decode and show result
+python cli.py video.mp4 -o result.png             # Save decoded image
+python cli.py video.mp4 --pdf result.pdf          # Export as PDF
+python cli.py video.mp4 --txt message.txt         # Export as text
 
-Options:
-  -o, --output FILE    Save decoded image
-  -t, --threshold N    Motion sensitivity (default: 5, lower = more sensitive)
-  -b, --blur N         Gaussian blur kernel (default: 1, 0 to skip)
-  -m, --method METHOD  'raw' or 'binary' (default: raw)
-  --ocr                Attempt OCR (requires pytesseract)
-  --no-show            Don't display result window
+# Method options
+python cli.py video.mp4 -m transition             # Transition-tracking (default, best)
+python cli.py video.mp4 -m dark                   # Dark-pixel accumulation
+python cli.py video.mp4 -m raw                    # Frame-difference accumulation
+
+# Fine-tuning
+python cli.py video.mp4 -t 99                     # Percentile (higher=fewer dots)
+python cli.py video.mp4 -b 8                      # Dilation iterations (connect dots)
 ```
 
-### Examples
+## Detection Methods
 
-```bash
-# Basic decode
-python cli.py secret-message.mp4
-
-# Save with high sensitivity
-python cli.py secret-message.mp4 -t 3 --output result.png
-
-# Use binary frame thresholding
-python cli.py secret-message.mp4 -m binary -t 15
-```
-
----
+| Method | Description | Best For |
+|--------|-------------|----------|
+| `transition` | Counts light→dark transitions per pixel — isolates moving dots from static decoys | **Recommended** — best at separating text dots from noise |
+| `dark` | Counts total dark frames per pixel — simpler accumulation | Videos with high dot-density |
+| `raw` | Frame-difference accumulation — classic approach | Traditional motion analysis |
 
 ## How to Get a Ghost Font Video
 
-1. Go to https://www.mixfont.com/ghost-font
-2. Type your message in the playground
-3. Click **Download message**
-4. Run this decoder on the downloaded video
+1. Go to [mixfont.com/ghost-font](https://www.mixfont.com/ghost-font)
+2. Type your message
+3. Download the video
+4. Run this decoder
 
----
+## How It Works
 
-## Why This Works
+1. **Dot detection** — finds dark moving pixels (value < 50) in each frame
+2. **Transition counting** — tracks light→dark transitions per pixel (moving dots cause frequent transitions, while static pixels stay constant)
+3. **Percentile filtering** — keeps the top percentile of most-active pixels where the letter paths are traced
+4. **Dilation** — connects nearby dots into readable strokes
+5. **OCR** — EasyOCR attempts to read the final image (best-effort)
 
-Current multimodal AI models process video as individual static frames. Ghost Font exploits this by making each frame look like noise. But the motion between frames contains the real message — and that's exactly what frame differencing detects.
+## Limitations
 
-This tool demonstrates that Ghost Font is **not** truly AI-proof — it only defeats models that don't use temporal analysis. Once video-native models or frame-differencing tools are used, the hidden message is revealed.
-
----
+Ghost Font is specifically designed to defeat AI vision. The OCR pass is **best-effort** and may not always return text. The decoded image should be readable by a human — if the OCR output is empty, try adjusting the sensitivity or dilation settings in the GUI, or read the text directly from the image preview.
 
 ## Requirements
 
 - Python 3.8+
-- OpenCV (`pip install opencv-python numpy`)
-- Tesseract (optional, for OCR: install from https://github.com/tesseract-ocr/tesseract)
-
----
+- opencv-python, numpy, easyocr, fpdf2, pillow
 
 ## License
 

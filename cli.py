@@ -3,23 +3,21 @@
 import argparse
 import sys
 from pathlib import Path
-from decoder import decode, try_ocr, save_result, open_result
+from decoder import decode, save_result, export_pdf, export_text, open_result
 
 
 def main():
     parser = argparse.ArgumentParser(
         prog="ghost-decode",
-        description="Decode Ghost Font videos using motion-difference accumulation.",
+        description="Decode Ghost Font videos — reveal messages hidden in motion.",
     )
     parser.add_argument("video", help="Path to Ghost Font video file")
-    parser.add_argument("-o", "--output", help="Save decoded image to file")
-    parser.add_argument("-t", "--threshold", type=int, default=5,
-                        help="Motion sensitivity threshold (default: 5, lower=more sensitive)")
-    parser.add_argument("-b", "--blur", type=int, default=1,
-                        help="Gaussian blur kernel size, 0 to skip (default: 1)")
-    parser.add_argument("-m", "--method", choices=["raw", "binary"], default="raw",
-                        help="Detection method: 'raw' accumulates unscaled differences (best), 'binary' thresholds each frame")
-    parser.add_argument("--ocr", action="store_true", help="Attempt OCR on the result")
+    parser.add_argument("-o", "--output", help="Save decoded image (PNG) to file")
+    parser.add_argument("--pdf", help="Export result as PDF")
+    parser.add_argument("--txt", help="Export decoded text as TXT")
+    parser.add_argument("-t", "--threshold", type=int, default=99)
+    parser.add_argument("-b", "--blur", type=int, default=5)
+    parser.add_argument("-m", "--method", choices=["transition", "dark", "raw"], default="transition")
     parser.add_argument("--no-show", action="store_true", help="Don't show the result window")
 
     args = parser.parse_args()
@@ -28,25 +26,37 @@ def main():
         print(f"Error: file not found — {args.video}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[+] Processing {args.video} (method={args.method}, threshold={args.threshold}, blur={args.blur}) ...")
+    def progress(pct, msg):
+        bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
+        print(f"\r  [{bar}] {pct}%  {msg}", end="", flush=True)
+
+    print(f"  Processing: {Path(args.video).name}")
     try:
-        result = decode(args.video, threshold=args.threshold, blur=args.blur, method=args.method)
+        img, text = decode(args.video, threshold=args.threshold,
+                           blur=args.blur, method=args.method,
+                           progress_callback=progress)
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"\nError: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[+] Decoded {result.shape[1]}x{result.shape[0]} image ({result.sum() > 0} motion detected)")
+    print(f"\n  Size: {img.shape[1]}x{img.shape[0]}")
+    print(f"  Motion detected: {img.sum() > 0}")
+    print(f"  Decoded text: {text or '(none)'}")
 
     if args.output:
-        save_result(result, args.output)
-        print(f"[+] Saved to {args.output}")
+        save_result(img, args.output)
+        print(f"  Image saved: {args.output}")
 
-    if args.ocr:
-        text = try_ocr(result)
-        print(f"[OCR] {text}")
+    if args.pdf:
+        export_pdf(text, img, args.pdf)
+        print(f"  PDF saved: {args.pdf}")
+
+    if args.txt:
+        export_text(text, args.txt)
+        print(f"  Text saved: {args.txt}")
 
     if not args.no_show:
-        open_result(result)
+        open_result(img)
 
 
 if __name__ == "__main__":
