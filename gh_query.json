@@ -1,0 +1,1 @@
+{"query": "query { repository(owner: \"roohan-514\", name: \"ghost-decoder\") { id discussionCategories(first: 10) { nodes { id name } } } }"}

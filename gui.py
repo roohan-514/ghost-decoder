@@ -88,7 +88,7 @@ class GhostDecoderGUI:
 
         # Settings panel
         settings = tk.LabelFrame(left, text="⚙️  Settings", bg=THEME_BG, fg=THEME_TEXT,
-                                  font=("Segoe UI", 10, "bold"), pad=10)
+                                  font=("Segoe UI", 10, "bold"))
         settings.pack(fill=tk.X, pady=(0, 10))
 
         row = tk.Frame(settings, bg=THEME_BG)
@@ -170,7 +170,7 @@ class GhostDecoderGUI:
 
         # Decoded text output
         text_frame = tk.LabelFrame(right, text="📖  Decoded Message", bg=THEME_BG, fg=THEME_TEXT,
-                                    font=("Segoe UI", 10, "bold"), pad=5)
+                                    font=("Segoe UI", 10, "bold"))
         text_frame.pack(fill=tk.X)
 
         self.text_display = tk.Text(text_frame, height=4, bg=THEME_SURFACE, fg="#00ff88",
